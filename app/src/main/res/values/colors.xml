@@ -1,0 +1,6 @@
+<resources>
+    <color name="board_bg">#0D1117</color>
+    <color name="chalk_white">#E9EEF4</color>
+    <color name="chalk_dim">#8B98A5</color>
+    <color name="accent">#F2F2F2</color>
+</resources>
