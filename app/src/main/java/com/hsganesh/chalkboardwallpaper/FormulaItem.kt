@@ -1,69 +1,48 @@
 package com.hsganesh.chalkboardwallpaper
 
 /**
- * A single handwritten formula/annotation placed on the board.
- * x/y are fractions of the board width/height (0f..1f) so the
- * layout scales cleanly across any screen size.
- */
-data class FormulaItem(
-    val text: String,
-    val xFrac: Float,
-    val yFrac: Float,
-    val sizeSp: Float,
-    val rotationDeg: Float = 0f,
-    val alpha: Int = 235,
-    val bold: Boolean = false
-)
-
-/**
- * The full bank of formulas/diagram captions used to fill the board.
- * Deliberately dense and varied (algebra, calculus, physics, stats) to
- * mirror a real handwritten study blackboard, while keeping a clear band
- * around the centre of the board free for the live clock.
+ * The bank of formula/annotation text used to densely fill the board.
+ * Plain strings only — placement (position, size, rotation) is decided
+ * procedurally at render time so the board reads like a real blackboard
+ * someone has genuinely filled while solving problems, not a fixed
+ * template.
+ *
+ * Only glyphs confirmed present in the chalk handwriting font are used
+ * directly (² ³ ¹ √ ± × ≈ ≠ ≤ ≥ ÷ ° μ π Δ ∫ ∂); every other Greek
+ * letter or math operator is spelled out (theta, psi, curl, sum, ...)
+ * so the whole board renders in one consistent handwriting style
+ * instead of falling back to a mismatched system font mid-word.
  */
 object FormulaBank {
 
-    fun all(): List<FormulaItem> = listOf(
-        // --- Top band ---
-        FormulaItem("1/N \u03A3(x\u1d62 - x\u0304)\u00B2", 0.06f, 0.035f, 15f, -4f),
-        FormulaItem("y = A sin(\u03C9t + \u03D5)", 0.58f, 0.02f, 15f, 2f),
-        FormulaItem("\u03C7\u00B2 = \u03A3(O\u1d62-E\u1d62)\u00B2/E\u1d62", 0.54f, 0.145f, 15f, -2f),
-        FormulaItem("x = (-b \u00B1 \u221A(b\u00B2-4ac)) / 2a", 0.40f, 0.19f, 14f, 1f),
-        FormulaItem("F = m 4\u03C0\u00B2R / T\u00B2", 0.05f, 0.245f, 15f, -3f),
-        FormulaItem("\u03D5(x)", 0.34f, 0.245f, 17f, 4f),
-        FormulaItem("\u2207\u00B7E = 0", 0.75f, 0.205f, 15f, -2f),
-        FormulaItem("\u2207\u00D7B = \u03BC\u2080J", 0.72f, 0.26f, 15f, 3f),
-        FormulaItem("sin(\u03C0/2)", 0.55f, 0.295f, 16f, 2f),
+    val pool: List<String> = listOf(
+        "E = mc\u00B2", "F = ma", "a\u00B2+b\u00B2=c\u00B2", "curl B = \u03BC0 J",
+        "\u222B0-3 x\u00B2 dx = 9", "d/dx sin x = cos x", "chi\u00B2 = sum(O-E)\u00B2/E",
+        "x=(-b\u00B1\u221A(b\u00B2-4ac))/2a", "sin\u00B2A+cos\u00B2A=1", "\u0394V=nRT",
+        "F=Gm1m2/r\u00B2", "s\u00B2 = 1/N sum(xi-m)\u00B2",
+        "sum 1/n\u00B2 = \u03C0\u00B2/6", "m=m0/\u221A(1-v\u00B2/c\u00B2)", "PV=nRT",
+        "psi(x,t)", "ih dpsi/dt = H psi",
+        "div E = rho/e0", "3! = 6", "log2(8)=3",
+        "lim x\u21920 sinx/x=1", "det[2 1;1 3]=5", "[1 0;0 1]", "|v|=\u221A(x\u00B2+y\u00B2)",
+        "A\u00B7B=|A||B|cosT", "v = u + at", "s = ut + \u00BDat\u00B2",
+        "P=IV", "V=IR", "KE=\u00BDmv\u00B2", "sum k=1..n = n(n+1)/2", "n!/(n-r)!",
+        "C(n,r)=n!/r!(n-r)!", "\u222B e^x dx = e^x+C", "d/dx ln x = 1/x",
+        "grad\u00B2 phi = 0", "y=mx+c", "\u0394x\u0394p \u2265 h/2",
+        "T=2\u03C0\u221A(L/g)", "lambda = h/p",
+        "sin(A+B)=sinAcosB+cosAsinB", "cos2A=1-2sin\u00B2A", "\u222B1/x dx=ln|x|",
+        "z=a+bi", "|z|=\u221A(a\u00B2+b\u00B2)", "e^(i\u03C0)+1=0", "du/dt = a d\u00B2u/dx\u00B2",
+        "f'(x)=lim h\u21920 [f(x+h)-f(x)]/h", "q=CV",
+        "R = rho L/A", "w = 2\u03C0f", "E=hf", "p=mv", "F=-kx", "W=Fd",
+        "sum F=ma", "g=9.8 m/s\u00B2", "c=3\u00D710\u2078 m/s", "Na=6.022\u00D710\u00B2\u00B3",
+        "sinh x=(e^x-e^-x)/2", "curl E = -dB/dt", "H psi = E psi",
+        "for all x in R", "exists y: f(y)=0", "A and B = empty set", "rank(A)=2",
+        "trace(A) = sum aii", "d\u00B2f/dxdy", "theta + phi = \u03C0/2", "wt + phi",
+        "curl E = -\u2202B/\u2202t", "\u2202\u00B2u/\u2202t\u00B2 = c\u00B2 \u2202\u00B2u/\u2202x\u00B2"
+    )
 
-        // --- Middle band, kept to the left/right edges so the clock stays clear ---
-        FormulaItem("\u2202v/\u2202t + v\u00B7\u2207v = 0", 0.03f, 0.335f, 13f, -1f),
-        FormulaItem("\u03A3\u221E n=1  n", 0.08f, 0.40f, 19f, -2f),
-        FormulaItem("d/dx x\u00B2 = 2x", 0.82f, 0.355f, 16f, 2f),
-        FormulaItem("det[5 1; 7 2]", 0.80f, 0.455f, 14f, 3f),
-        FormulaItem("\u222B\u2080\u00B3 x\u00B2 dx", 0.04f, 0.52f, 18f, -3f),
-
-        // --- Lower-middle band ---
-        FormulaItem("i\u0127 \u2202\u03C8/\u2202t = -\u0127\u00B2/2m \u2207\u00B2\u03C8", 0.04f, 0.665f, 13f, -1f),
-        FormulaItem("\u03A0\u00B3 n=1 (n+1)/n", 0.76f, 0.635f, 14f, 2f),
-        FormulaItem("m = m\u2080 / \u221A(1-v\u00B2/c\u00B2)", 0.63f, 0.605f, 13f, -2f),
-        FormulaItem("\u221A(7\u00B2+24\u00B2)", 0.80f, 0.70f, 15f, 3f),
-
-        // --- Bottom band ---
-        FormulaItem("E = mc\u00B2", 0.60f, 0.815f, 22f, -2f, bold = true),
-        FormulaItem("\u03C3\u00B2 = 1/N \u03A3(x\u1d62-\u03BC)\u00B2", 0.05f, 0.855f, 13f, -2f),
-        FormulaItem("2(2\u00B2)", 0.44f, 0.87f, 17f, 2f),
-        FormulaItem("1/4 \u00D7 (8 2)", 0.62f, 0.865f, 15f, -2f),
-        FormulaItem("3!", 0.84f, 0.865f, 18f, 3f),
-        FormulaItem("\u2207p + \u03C1\u2207\u03A6 = 0", 0.14f, 0.925f, 13f, -1f),
-        FormulaItem("\u0394V = nRT", 0.40f, 0.93f, 15f, 2f),
-        FormulaItem("F = G m\u2081m\u2082/r\u00B2", 0.62f, 0.93f, 15f, -2f),
-        FormulaItem("q v B", 0.06f, 0.965f, 15f, -3f),
-        FormulaItem("\u2202\u00B2u/\u2202t\u00B2 = c\u00B2\u2207\u00B2u", 0.30f, 0.965f, 13f, 2f),
-        FormulaItem("\u222B\u208B\u221E\u221E e\u207B\u02E3\u00B2 dx = \u221A\u03C0", 0.60f, 0.965f, 14f, -1f),
-
-        // --- Faint motivational chalk notes, tucked in gaps ---
-        FormulaItem("DISCIPLINE\nCREATES\nFREEDOM", 0.06f, 0.60f, 11f, -6f, alpha = 140),
-        FormulaItem("A BETTER\nVERSION\nOF ME", 0.83f, 0.53f, 11f, -6f, alpha = 140),
-        FormulaItem("SAME MINDSET\nDIFFERENT RESULTS", 0.08f, 0.79f, 10f, -6f, alpha = 140),
+    /** A small set of iconic equations occasionally drawn larger / bolder. */
+    val heroPool: List<String> = listOf(
+        "E = mc\u00B2", "F = ma", "a\u00B2+b\u00B2=c\u00B2", "e^(i\u03C0)+1=0",
+        "PV = nRT", "curl B = \u03BC0 J", "\u0394x\u0394p \u2265 h/2"
     )
 }

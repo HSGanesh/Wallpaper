@@ -140,4 +140,75 @@ object ChalkDiagrams {
         canvas.drawLine(cx, cy, cx + r * 0.75f, cy - r * 0.55f, paint)
         canvas.drawLine(cx, cy, cx - r * 0.6f, cy + r * 0.25f, paint)
     }
+
+    /** A coordinate system with a parabola-like curve plotted on it. */
+    fun drawCoordCurve(canvas: Canvas, cx: Float, cy: Float, w: Float, h: Float, color: Int) {
+        val paint = linePaint(w * 0.008f, 190, color)
+        canvas.drawLine(cx - w / 2, cy, cx + w / 2, cy, paint)
+        canvas.drawLine(cx, cy + h / 2, cx, cy - h / 2, paint)
+        val path = Path()
+        var first = true
+        var x = -w / 2
+        while (x <= w / 2) {
+            val t = x / (w / 2)
+            val y = -h * 0.4f * (t * t)
+            if (first) {
+                path.moveTo(cx + x, cy + y); first = false
+            } else path.lineTo(cx + x, cy + y)
+            x += w / 60f
+        }
+        canvas.drawPath(path, linePaint(w * 0.012f, 210, color))
+    }
+
+    /** A small bundle of vector arrows from a common origin. */
+    fun drawVectors(canvas: Canvas, cx: Float, cy: Float, s: Float, color: Int) {
+        val paint = linePaint(s * 0.05f, 210, color)
+        val tips = listOf(
+            Pair(cx + s, cy - s * 0.3f),
+            Pair(cx + s * 0.2f, cy - s),
+            Pair(cx + s * 1.05f, cy - s * 1.1f)
+        )
+        for ((tx, ty) in tips) {
+            canvas.drawLine(cx, cy, tx, ty, paint)
+            val ang = kotlin.math.atan2((ty - cy).toDouble(), (tx - cx).toDouble())
+            for (da in listOf(0.5, -0.5)) {
+                val ax = (tx - s * 0.18f * cos(ang + da)).toFloat()
+                val ay = (ty - s * 0.18f * sin(ang + da)).toFloat()
+                canvas.drawLine(tx, ty, ax, ay, paint)
+            }
+        }
+    }
+
+    /** A simple right-triangle geometry sketch with a right-angle mark. */
+    fun drawTriangleGeo(canvas: Canvas, cx: Float, cy: Float, s: Float, color: Int) {
+        val paint = linePaint(s * 0.035f, 200, color)
+        val p1x = cx - s; val p1y = cy + s * 0.5f
+        val p2x = cx + s; val p2y = cy + s * 0.5f
+        val p3x = cx - s; val p3y = cy - s * 0.6f
+        val path = Path()
+        path.moveTo(p1x, p1y)
+        path.lineTo(p2x, p2y)
+        path.lineTo(p3x, p3y)
+        path.close()
+        canvas.drawPath(path, paint)
+        canvas.drawRect(
+            RectF(p1x, p1y - s * 0.12f, p1x + s * 0.12f, p1y),
+            linePaint(s * 0.03f, 200, color)
+        )
+    }
+
+    /** A small bar-chart / histogram sketch. */
+    fun drawBarChart(canvas: Canvas, left: Float, top: Float, w: Float, h: Float, color: Int) {
+        val paint = linePaint(w * 0.012f, 200, color)
+        val bottom = top + h
+        canvas.drawLine(left, top, left, bottom, paint)
+        canvas.drawLine(left, bottom, left + w, bottom, paint)
+        val heights = listOf(0.4f, 0.7f, 0.5f, 0.9f, 0.3f)
+        val bw = w / (heights.size * 1.6f)
+        for ((i, hh) in heights.withIndex()) {
+            val x0 = left + w * 0.08f + i * (bw * 1.6f)
+            val y0 = bottom - h * hh * 0.85f
+            canvas.drawRect(RectF(x0, y0, x0 + bw, bottom), paint)
+        }
+    }
 }

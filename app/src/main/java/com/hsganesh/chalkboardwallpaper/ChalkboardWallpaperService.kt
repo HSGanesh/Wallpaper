@@ -5,6 +5,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
+import android.graphics.RectF
 import android.graphics.Typeface
 import android.os.Handler
 import android.os.Looper
@@ -135,71 +136,151 @@ class ChalkboardWallpaperService : WallpaperService() {
             staticLayer = bmp
         }
 
+        /**
+         * Very subtle board texture: a handful of large soft smudges (like
+         * chalk rubbed and re-used over time) plus a few faint scratch
+         * strokes. Deliberately NOT a field of small dots — that reads as
+         * a starfield rather than a chalkboard.
+         */
         private fun drawChalkDust(canvas: Canvas, w: Int, h: Int) {
             val random = Random(20260922L)
-            val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-            val count = (w * h / 1400)
-            repeat(count) {
-                val x = random.nextFloat() * w
-                val y = random.nextFloat() * h
-                val a = random.nextInt(6, 26)
-                val r = if (random.nextFloat() < 0.85f) 1f else 1.8f
-                paint.color = Color.argb(a, 200, 205, 210)
-                canvas.drawCircle(x, y, r, paint)
+            repeat(12) {
+                val cx = random.nextFloat() * w
+                val cy = random.nextFloat() * h
+                val r = w * (0.05f + random.nextFloat() * 0.09f)
+                val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    style = Paint.Style.FILL
+                    shader = android.graphics.RadialGradient(
+                        cx, cy, r,
+                        intArrayOf(Color.argb(random.nextInt(5, 11), 90, 94, 100), Color.TRANSPARENT),
+                        floatArrayOf(0f, 1f),
+                        android.graphics.Shader.TileMode.CLAMP
+                    )
+                }
+                canvas.drawCircle(cx, cy, r, paint)
             }
-            // A handful of longer faint chalk smudge strokes for realism.
-            val smudge = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            val scratch = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 style = Paint.Style.STROKE
-                strokeWidth = h * 0.004f
+                strokeWidth = 1.2f
                 strokeCap = Paint.Cap.ROUND
-                color = Color.argb(14, 210, 210, 210)
+                color = Color.argb(20, 100, 104, 110)
             }
-            repeat(10) {
+            repeat(6) {
                 val sx = random.nextFloat() * w
                 val sy = random.nextFloat() * h
-                val len = w * (0.05f + random.nextFloat() * 0.10f)
-                canvas.drawLine(sx, sy, sx + len, sy + (random.nextFloat() - 0.5f) * 20f, smudge)
+                val len = w * (0.06f + random.nextFloat() * 0.10f)
+                val angle = (random.nextFloat() - 0.5f) * 0.6f
+                canvas.drawLine(
+                    sx, sy,
+                    sx + len * kotlin.math.cos(angle.toDouble()).toFloat(),
+                    sy + len * kotlin.math.sin(angle.toDouble()).toFloat(),
+                    scratch
+                )
             }
         }
+
+        /** Fractional (x0,x1,y0,y1) zones reserved for hand-sketched diagrams. */
+        private val diagramZones = listOf(
+            floatArrayOf(0.56f, 1.00f, 0.00f, 0.10f), // sine wave, top right
+            floatArrayOf(0.20f, 0.50f, 0.09f, 0.21f), // magnetic field
+            floatArrayOf(0.00f, 0.16f, 0.05f, 0.15f), // circuit, top left
+            floatArrayOf(0.75f, 1.00f, 0.19f, 0.38f), // atom
+            floatArrayOf(0.00f, 0.20f, 0.14f, 0.30f), // sphere angles
+            floatArrayOf(0.72f, 1.00f, 0.58f, 0.74f), // coordinate curve
+            floatArrayOf(0.00f, 0.20f, 0.53f, 0.68f), // vector bundle
+            floatArrayOf(0.75f, 1.00f, 0.79f, 0.93f), // triangle geometry
+            floatArrayOf(0.00f, 0.16f, 0.80f, 0.94f)  // bar chart
+        )
 
         private fun drawDiagrams(canvas: Canvas, w: Int, h: Int) {
-            val dim = Color.argb(200, 180, 188, 196)
-            ChalkDiagrams.drawSineWave(
-                canvas, w * 0.80f, h * 0.045f, w * 0.30f, h * 0.06f, dim
-            )
-            ChalkDiagrams.drawMagneticField(
-                canvas, w * 0.40f, h * 0.20f, w * 0.28f, h * 0.09f, dim
-            )
-            ChalkDiagrams.drawCircuit(
-                canvas, w * 0.30f, h * 0.015f, w * 0.14f, h * 0.06f, dim
-            )
-            ChalkDiagrams.drawAtom(
-                canvas, w * 0.42f, h * 0.755f, min(w, h) * 0.075f, dim
-            )
-            ChalkDiagrams.drawSphereAngles(
-                canvas, w * 0.13f, h * 0.10f, min(w, h) * 0.09f, dim
-            )
+            val dim = Color.argb(195, 172, 180, 188)
+            val minWH = min(w, h)
+            ChalkDiagrams.drawSineWave(canvas, w * 0.735f, h * 0.040f, w * 0.28f, h * 0.038f, dim)
+            ChalkDiagrams.drawMagneticField(canvas, w * 0.355f, h * 0.145f, w * 0.22f, h * 0.05f, dim)
+            ChalkDiagrams.drawCircuit(canvas, w * 0.045f, h * 0.075f, w * 0.15f, h * 0.045f, dim)
+            ChalkDiagrams.drawAtom(canvas, w * 0.865f, h * 0.275f, minWH * 0.065f, dim)
+            ChalkDiagrams.drawSphereAngles(canvas, w * 0.11f, h * 0.225f, minWH * 0.062f, dim)
+            ChalkDiagrams.drawCoordCurve(canvas, w * 0.855f, h * 0.655f, w * 0.19f, h * 0.075f, dim)
+            ChalkDiagrams.drawVectors(canvas, w * 0.10f, h * 0.605f, w * 0.12f, dim)
+            ChalkDiagrams.drawTriangleGeo(canvas, w * 0.86f, h * 0.845f, minWH * 0.055f, dim)
+            ChalkDiagrams.drawBarChart(canvas, w * 0.045f, h * 0.845f, w * 0.15f, h * 0.045f, dim)
         }
 
-        private fun drawFormulas(canvas: Canvas, w: Int, h: Int) {
-            val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                typeface = formulaTypeface
-                color = chalkWhite
+        private fun inZone(xf: Float, yf: Float, zones: List<FloatArray>): Boolean {
+            for (z in zones) {
+                if (xf in z[0]..z[1] && yf in z[2]..z[3]) return true
             }
-            for (item in FormulaBank.all()) {
-                paint.alpha = item.alpha
-                paint.textSize = spToPx(item.sizeSp) * (w / 1080f).coerceIn(0.85f, 1.6f)
-                val lines = item.text.split("\n")
-                canvas.save()
-                val px = w * item.xFrac
-                val py = h * item.yFrac
-                canvas.rotate(item.rotationDeg, px, py)
-                var ly = py
-                for (line in lines) {
-                    canvas.drawText(line, px, ly, paint)
-                    ly += paint.textSize * 1.05f
+            return false
+        }
+
+        /**
+         * Densely fills the board with formulas using a jittered grid: a
+         * regular grid of cells, each nudged randomly and populated (or
+         * skipped) so the layout reads as genuinely hand-filled rather than
+         * a template, while a lightweight overlap check keeps neighbouring
+         * lines from colliding into unreadable mush.
+         */
+        private fun drawFormulas(canvas: Canvas, w: Int, h: Int) {
+            val random = Random(7L)
+            val pool = FormulaBank.pool.shuffled(Random(7L))
+            var poolIndex = 0
+            fun nextText(): String {
+                val t = pool[poolIndex % pool.size]
+                poolIndex++
+                return t
+            }
+
+            val cols = 7
+            val rows = 13
+            val marginX = 0.05f
+            val clockX0 = 0.16f; val clockX1 = 0.84f
+            val clockY0 = 0.375f; val clockY1 = 0.605f
+
+            val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { typeface = formulaTypeface }
+            val occupied = ArrayList<RectF>()
+            val bounds = Rect()
+
+            for (row in 0 until rows) {
+                for (col in 0 until cols) {
+                    val xf = marginX + (col + 0.5f) / cols * (1 - 2 * marginX) +
+                        (random.nextFloat() - 0.5f) * 0.05f
+                    val yf = (row + 0.5f) / rows + (random.nextFloat() - 0.5f) * 0.032f
+
+                    if (xf in clockX0..clockX1 && yf in clockY0..clockY1) continue
+                    if (inZone(xf, yf, diagramZones)) continue
+                    if (random.nextFloat() < 0.06f) continue
+
+                    val isHero = row != 0 && row != rows - 1 && random.nextFloat() < 0.045f
+                    val text = if (isHero) FormulaBank.heroPool[random.nextInt(FormulaBank.heroPool.size)] else nextText()
+                    val sizeFrac = if (isHero) {
+                        0.020f + random.nextFloat() * 0.005f
+                    } else {
+                        0.0110f + random.nextFloat() * 0.0055f
+                    }
+                    paint.textSize = h * sizeFrac
+                    paint.alpha = if (isHero) 255 else 160 + random.nextInt(75)
+                    paint.color = chalkWhite
+
+                    val px = w * xf
+                    val py = h * yf
+                    paint.getTextBounds(text, 0, text.length, bounds)
+                    val tw = bounds.width().toFloat()
+                    val th = bounds.height().toFloat()
+
+                    val candidate = RectF(px, py - th, px + tw, py + th * 0.3f)
+                    var collides = false
+                    for (r in occupied) {
+                        if (RectF.intersects(candidate, r)) { collides = true; break }
+                    }
+                    if (collides) continue
+                    occupied.add(candidate)
+
+                    val rot = (random.nextFloat() - 0.5f) * 12f
+                    canvas.save()
+                    canvas.rotate(rot, px, py)
+                    canvas.drawText(text, px, py, paint)
+                    canvas.restore()
                 }
-                canvas.restore()
             }
         }
 
